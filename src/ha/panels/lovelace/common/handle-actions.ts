@@ -110,7 +110,7 @@ export const handleAction = async (
         case "toggle": {
             if (config.entity) {
                 toggleEntity(hass, config.entity!);
-                forwardHaptic("light");
+                forwardHaptic("success");
             } else {
                 showToast(node, {
                     message: hass.localize("ui.panel.lovelace.cards.actions.no_entity_toggle"),
@@ -134,7 +134,7 @@ export const handleAction = async (
                 actionConfig.data ?? actionConfig.service_data,
                 actionConfig.target
             );
-            forwardHaptic("light");
+            forwardHaptic("success");
             break;
         }
         case "fire-dom-event": {

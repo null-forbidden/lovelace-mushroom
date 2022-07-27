@@ -42,6 +42,9 @@ export class SliderItem extends LitElement {
     @property({ type: Number })
     public max: number = 100;
 
+    @property({ type: Boolean })
+    public isBrightness: boolean = false;
+
     private _mc?: HammerManager;
 
     @state() controlled: boolean = false;
@@ -155,6 +158,9 @@ export class SliderItem extends LitElement {
     }
 
     protected render(): TemplateResult {
+        // Disable 0% brightness
+        if(this.isBrightness && this.value == 0) this.value = 1;
+
         return html`
             <div
                 class=${classMap({
@@ -190,7 +196,7 @@ export class SliderItem extends LitElement {
             .container {
                 display: flex;
                 flex-direction: row;
-                height: var(--control-height);
+                height: calc(var(--control-height)*1.5);
             }
             .slider {
                 position: relative;

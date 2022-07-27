@@ -4,6 +4,7 @@ import { css, CSSResultGroup, html, LitElement, TemplateResult, unsafeCSS } from
 import { customElement, property } from "lit/decorators.js";
 import { HomeAssistant, isActive, isAvailable } from "../../../ha";
 import "../../../shared/slider";
+import { forwardHaptic } from "../../../ha/data/haptics";
 
 const GRADIENT = [
     [0, "#f00"],
@@ -21,7 +22,8 @@ export class LightColorControl extends LitElement {
 
     @property({ attribute: false }) public entity!: HassEntity;
 
-    _percent = 0;
+    _timer!: NodeJS.Timeout | null;
+    _percent!: number;
 
     _percentToRGB(percent: number): number[] {
         const color = Color.hsv(360 * percent, 100, 100);
@@ -34,16 +36,49 @@ export class LightColorControl extends LitElement {
     }
 
     onChange(e: CustomEvent<{ value: number }>): void {
-        const value = e.detail.value;
-        this._percent = value;
+        const value: number = e.detail.value;
 
-        const rgb_color = this._percentToRGB(value / 100);
+        if(this._percent != value)
+        {
+            this._percent = value;
 
-        if (rgb_color.length === 3) {
-            this.hass.callService("light", "turn_on", {
-                entity_id: this.entity.entity_id,
-                rgb_color,
-            });
+            const rgb_color = this._percentToRGB(this._percent / 100);
+
+            if (rgb_color.length === 3) {
+                this.hass.callService("light", "turn_on", {
+                    entity_id: this.entity.entity_id,
+                    rgb_color,
+                });
+
+                forwardHaptic("light");
+            }
+        }
+    }
+
+    onCurrentChange(e: CustomEvent<{ value?: number }>): void {
+        const value: number | undefined = e.detail.value;
+
+        if(value && this._percent != value)
+        {
+            if (this._timer) clearTimeout(this._timer);
+
+            this._percent = value;
+
+            // Set timer to prevent delay issues
+            this._timer = setTimeout(() => {      
+                const rgb_color = this._percentToRGB(this._percent / 100);
+        
+                if (rgb_color.length === 3) {
+                    this.hass.callService("light", "turn_on", {
+                        entity_id: this.entity.entity_id,
+                        rgb_color,
+                    });
+                }
+
+                this._timer = null;
+            }, 25);
+
+            forwardHaptic("light");
         }
     }
 
@@ -60,6 +95,7 @@ export class LightColorControl extends LitElement {
                 .max=${100}
                 .showIndicator=${true}
                 @change=${this.onChange}
+                @current-change=${this.onCurrentChange}
             />
         `;
     }

@@ -13,6 +13,7 @@ export const cardStyle = css`
         height: 100%;
     }
     .actions {
+        height: 63px;
         display: flex;
         flex-direction: row;
         align-items: flex-start;
@@ -35,5 +36,13 @@ export const cardStyle = css`
     }
     .unavailable {
         --main-color: var(--warning-color);
+    }
+    .actionButtons {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+    }
+    .actionButtons mushroom-button {
+        flex: 1 1 0%
     }
 `;

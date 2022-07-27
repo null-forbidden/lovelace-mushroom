@@ -42,6 +42,7 @@ import {
     supportsColorControl,
     supportsColorTempControl,
 } from "./utils";
+import { forwardHaptic } from "../../ha/data/haptics";
 
 type LightCardControl = "brightness_control" | "color_temp_control" | "color_control";
 
@@ -80,6 +81,8 @@ export class LightCard extends MushroomBaseCard implements LovelaceCard {
     @state() private _controls: LightCardControl[] = [];
 
     _onControlTap(ctrl, e): void {
+        forwardHaptic("medium");
+
         e.stopPropagation();
         this._activeControl = ctrl;
     }
@@ -125,7 +128,7 @@ export class LightCard extends MushroomBaseCard implements LovelaceCard {
     }
 
     private onCurrentBrightnessChange(e: CustomEvent<{ value?: number }>): void {
-        if (e.detail.value != null) {
+        if (e.detail.value && this.brightness != e.detail.value) {
             this.brightness = e.detail.value;
         }
     }
@@ -200,7 +203,10 @@ export class LightCard extends MushroomBaseCard implements LovelaceCard {
                     ${this._controls.length > 0
                         ? html`
                               <div class="actions" ?rtl=${rtl}>
-                                  ${this.renderActiveControl(entity)} ${this.renderOtherControls()}
+                                  ${this.renderActiveControl(entity)}
+                              </div>
+                              <div class="actionButtons">
+                                  ${this.renderOtherControls()}
                               </div>
                           `
                         : null}

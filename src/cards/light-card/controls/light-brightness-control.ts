@@ -3,6 +3,7 @@ import { customElement, property } from "lit/decorators.js";
 import { HomeAssistant, isActive, isAvailable, LightEntity } from "../../../ha";
 import "../../../shared/slider";
 import { getBrightness } from "../utils";
+import { forwardHaptic } from "../../../ha/data/haptics";
 
 @customElement("mushroom-light-brightness-control")
 export class LightBrighnessControl extends LitElement {
@@ -10,31 +11,68 @@ export class LightBrighnessControl extends LitElement {
 
     @property({ attribute: false }) public entity!: LightEntity;
 
+    _timer!: NodeJS.Timeout | null;
+    _percent!: number;
+    
     onChange(e: CustomEvent<{ value: number }>): void {
-        const value = e.detail.value;
-        this.hass.callService("light", "turn_on", {
-            entity_id: this.entity.entity_id,
-            brightness_pct: value,
-        });
+        const value: number = e.detail.value;
+
+        if(this._percent != value && !(this._percent == 1 && value < 1))
+        {
+            this._percent = value;
+            
+            // Disable 0% brightness
+            if(value == 0) this._percent = 1;
+
+            this.hass.callService("light", "turn_on", {
+                entity_id: this.entity.entity_id,
+                brightness_pct: this._percent,
+            });
+
+            forwardHaptic("light");
+        }
     }
 
     onCurrentChange(e: CustomEvent<{ value?: number }>): void {
-        const value = e.detail.value;
-        this.dispatchEvent(
-            new CustomEvent("current-change", {
-                detail: {
-                    value,
-                },
-            })
-        );
+        const value: number | undefined = e.detail.value;
+
+        if(value && this._percent != value)
+        {
+            if (this._timer) clearTimeout(this._timer);
+            
+            this._percent = value;
+            
+            // Disable 0% brightness
+            if(value == 0) this._percent = 1;
+
+            this.dispatchEvent(
+                new CustomEvent("current-change", {
+                    detail: {
+                        value,
+                    },
+                })
+            );
+            
+            // Set timer to prevent delay issues
+            this._timer = setTimeout(async () => { 
+                this.hass.callService("light", "turn_on", {
+                    entity_id: this.entity.entity_id,
+                    brightness_pct: this._percent,
+                });
+                this._timer = null;
+            }, 25);
+
+            forwardHaptic("light");
+        }
     }
 
     protected render(): TemplateResult {
-        const brightness = getBrightness(this.entity);
+        const brightnessPercent = this._percent || getBrightness(this.entity);
 
         return html`
             <mushroom-slider
-                .value=${brightness}
+                .isBrightness=${true}
+                .value=${brightnessPercent}
                 .disabled=${!isAvailable(this.entity)}
                 .inactive=${!isActive(this.entity)}
                 .showActive=${true}
