@@ -41,5 +41,5 @@ export function supportsBrightnessControl(entity: LightEntity): boolean {
 }
 
 export function delay(milliseconds: number): Promise<void> {
-    return new Promise(resolve => window.setTimeout( resolve, milliseconds));
+    return new Promise((resolve) => window.setTimeout(resolve, milliseconds));
 }

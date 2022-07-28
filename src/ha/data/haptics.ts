@@ -35,5 +35,5 @@ export const isMobile = (): RegExpMatchArray | null => {
 };
 
 export const forwardHaptic = (hapticType: HapticType): void => {
-    if(isMobile()) fireEvent(window, "haptic", hapticType);
+    if (isMobile()) fireEvent(window, "haptic", hapticType);
 };

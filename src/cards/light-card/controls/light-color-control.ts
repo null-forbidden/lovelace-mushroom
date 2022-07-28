@@ -40,8 +40,7 @@ export class LightColorControl extends LitElement {
     onChange(e: CustomEvent<{ value: number }>): void {
         const value: number = e.detail.value;
 
-        if(this._percent != value)
-        {
+        if (this._percent != value) {
             this._percent = value;
 
             const rgb_color = this._percentToRGB(this._percent / 100);
@@ -60,16 +59,15 @@ export class LightColorControl extends LitElement {
     onCurrentChange(e: CustomEvent<{ value?: number }>): void {
         const value: number | undefined = e.detail.value;
 
-        if(value && this._percent != value)
-        {
+        if (value && this._percent != value) {
             if (this._timer) clearTimeout(this._timer);
 
             this._percent = value;
 
             // Set timer to prevent delay issues
-            this._timer = window.setTimeout(() => {      
+            this._timer = window.setTimeout(() => {
                 const rgb_color = this._percentToRGB(this._percent! / 100);
-        
+
                 if (rgb_color.length === 3) {
                     this.hass.callService("light", "turn_on", {
                         entity_id: this.entity.entity_id,
@@ -87,13 +85,14 @@ export class LightColorControl extends LitElement {
     finished(): void {
         delay(FINISHED_FEEDBACK_DELAY).then(() => {
             this._percent = undefined;
-            
+
             forwardHaptic("success");
         });
     }
 
     protected render(): TemplateResult {
-        const colorPercent = this._percent || this._rgbToPercent(this.entity.attributes.rgb_color) * 100;
+        const colorPercent =
+            this._percent || this._rgbToPercent(this.entity.attributes.rgb_color) * 100;
 
         return html`
             <mushroom-slider

@@ -43,6 +43,6 @@ export const cardStyle = css`
         gap: 12px;
     }
     .actionButtons mushroom-button {
-        flex: 1 1 0%
+        flex: 1 1 0%;
     }
 `;

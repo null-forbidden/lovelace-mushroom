@@ -14,16 +14,15 @@ export class LightBrighnessControl extends LitElement {
 
     _timer?: number;
     _percent?: number;
-    
+
     onChange(e: CustomEvent<{ value: number }>): void {
         const value: number = e.detail.value;
 
-        if(this._percent != value && !(this._percent == 1 && value < 1))
-        {
+        if (this._percent != value && !(this._percent == 1 && value < 1)) {
             this._percent = value;
-            
+
             // Disable 0% brightness
-            if(value == 0) this._percent = 1;
+            if (value == 0) this._percent = 1;
 
             this.hass.callService("light", "turn_on", {
                 entity_id: this.entity.entity_id,
@@ -37,14 +36,13 @@ export class LightBrighnessControl extends LitElement {
     onCurrentChange(e: CustomEvent<{ value?: number }>): void {
         const value: number | undefined = e.detail.value;
 
-        if(value && this._percent != value)
-        {
+        if (value && this._percent != value) {
             if (this._timer) clearTimeout(this._timer);
-            
+
             this._percent = value;
-            
+
             // Disable 0% brightness
-            if(value == 0) this._percent = 1;
+            if (value == 0) this._percent = 1;
 
             this.dispatchEvent(
                 new CustomEvent("current-change", {
@@ -53,9 +51,9 @@ export class LightBrighnessControl extends LitElement {
                     },
                 })
             );
-            
+
             // Set timer to prevent delay issues
-            this._timer = window.setTimeout(() => { 
+            this._timer = window.setTimeout(() => {
                 this.hass.callService("light", "turn_on", {
                     entity_id: this.entity.entity_id,
                     brightness_pct: this._percent,

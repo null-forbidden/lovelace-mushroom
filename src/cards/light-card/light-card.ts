@@ -205,9 +205,7 @@ export class LightCard extends MushroomBaseCard implements LovelaceCard {
                               <div class="actions" ?rtl=${rtl}>
                                   ${this.renderActiveControl(entity)}
                               </div>
-                              <div class="actionButtons">
-                                  ${this.renderOtherControls()}
-                              </div>
+                              <div class="actionButtons">${this.renderOtherControls()}</div>
                           `
                         : null}
                 </mushroom-card>

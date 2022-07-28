@@ -158,7 +158,7 @@ export class SliderItem extends LitElement {
 
     protected render(): TemplateResult {
         // Disable 0% brightness
-        if(this.isBrightness && this.value == 0) this.value = 1;
+        if (this.isBrightness && this.value == 0) this.value = 1;
 
         return html`
             <div
@@ -195,7 +195,7 @@ export class SliderItem extends LitElement {
             .container {
                 display: flex;
                 flex-direction: row;
-                height: calc(var(--control-height)*1.5);
+                height: calc(var(--control-height) * 1.5);
             }
             .slider {
                 position: relative;

@@ -18,8 +18,7 @@ export class LightColorTempControl extends LitElement {
     onChange(e: CustomEvent<{ value: number }>): void {
         const value: number = e.detail.value;
 
-        if(this._percent != value)
-        {
+        if (this._percent != value) {
             this._percent = value;
 
             this.hass.callService("light", "turn_on", {
@@ -32,21 +31,20 @@ export class LightColorTempControl extends LitElement {
     onCurrentChange(e: CustomEvent<{ value?: number }>): void {
         const value: number | undefined = e.detail.value;
 
-        if(value && this._percent != value)
-        {
+        if (value && this._percent != value) {
             if (this._timer) clearTimeout(this._timer);
 
             this._percent = value;
 
             // Set timer to prevent delay issues
-            this._timer = window.setTimeout(() => {    
+            this._timer = window.setTimeout(() => {
                 this.hass.callService("light", "turn_on", {
                     entity_id: this.entity.entity_id,
                     color_temp: this._percent,
                 });
                 this._timer = undefined;
             }, LIVE_FEEDBACK_DELAY);
-            
+
             forwardHaptic("selection");
         }
     }
@@ -54,7 +52,7 @@ export class LightColorTempControl extends LitElement {
     finished(): void {
         delay(FINISHED_FEEDBACK_DELAY).then(() => {
             this._percent = undefined;
-            
+
             forwardHaptic("success");
         });
     }
