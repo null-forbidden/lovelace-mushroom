@@ -11,8 +11,8 @@ export class LightColorTempControl extends LitElement {
 
     @property({ attribute: false }) public entity!: LightEntity;
 
-    _timer!: NodeJS.Timeout | null;
-    _percent!: number;
+    _timer?: number;
+    _percent?: number;
 
     onChange(e: CustomEvent<{ value: number }>): void {
         const value: number = e.detail.value;
@@ -40,16 +40,20 @@ export class LightColorTempControl extends LitElement {
             this._percent = value;
 
             // Set timer to prevent delay issues
-            this._timer = setTimeout(() => {    
+            this._timer = window.setTimeout(() => {    
                 this.hass.callService("light", "turn_on", {
                     entity_id: this.entity.entity_id,
                     color_temp: this._percent,
                 });
-                this._timer = null;
+                this._timer = undefined;
             }, 25);
             
             forwardHaptic("selection");
         }
+    }
+
+    finished(): void {
+        this._percent = undefined;
     }
 
     protected render(): TemplateResult {
@@ -65,6 +69,7 @@ export class LightColorTempControl extends LitElement {
                 .showIndicator=${true}
                 @change=${this.onChange}
                 @current-change=${this.onCurrentChange}
+                @finished=${this.finished}
             />
         `;
     }

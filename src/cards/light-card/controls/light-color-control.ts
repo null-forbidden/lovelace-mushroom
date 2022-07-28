@@ -22,8 +22,8 @@ export class LightColorControl extends LitElement {
 
     @property({ attribute: false }) public entity!: HassEntity;
 
-    _timer!: NodeJS.Timeout | null;
-    _percent!: number;
+    _timer?: number;
+    _percent?: number;
 
     _percentToRGB(percent: number): number[] {
         const color = Color.hsv(360 * percent, 100, 100);
@@ -65,8 +65,8 @@ export class LightColorControl extends LitElement {
             this._percent = value;
 
             // Set timer to prevent delay issues
-            this._timer = setTimeout(() => {      
-                const rgb_color = this._percentToRGB(this._percent / 100);
+            this._timer = window.setTimeout(() => {      
+                const rgb_color = this._percentToRGB(this._percent! / 100);
         
                 if (rgb_color.length === 3) {
                     this.hass.callService("light", "turn_on", {
@@ -75,16 +75,19 @@ export class LightColorControl extends LitElement {
                     });
                 }
 
-                this._timer = null;
+                this._timer = undefined;
             }, 25);
 
             forwardHaptic("selection");
         }
     }
 
+    finished(): void {
+        this._percent = undefined;
+    }
+
     protected render(): TemplateResult {
-        const colorPercent =
-            this._percent || this._rgbToPercent(this.entity.attributes.rgb_color) * 100;
+        const colorPercent = this._percent || this._rgbToPercent(this.entity.attributes.rgb_color) * 100;
 
         return html`
             <mushroom-slider
@@ -96,6 +99,7 @@ export class LightColorControl extends LitElement {
                 .showIndicator=${true}
                 @change=${this.onChange}
                 @current-change=${this.onCurrentChange}
+                @finished=${this.finished}
             />
         `;
     }

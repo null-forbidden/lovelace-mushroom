@@ -129,6 +129,7 @@ export class SliderItem extends LitElement {
                         },
                     })
                 );
+                this.dispatchEvent(new CustomEvent("finished"));
             });
 
             this._mc.on("singletap", (e) => {
@@ -143,6 +144,7 @@ export class SliderItem extends LitElement {
                         },
                     })
                 );
+                this.dispatchEvent(new CustomEvent("finished"));
             });
         }
     }

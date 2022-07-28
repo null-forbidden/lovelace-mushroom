@@ -8,11 +8,11 @@ import { forwardHaptic } from "../../../ha/data/haptics";
 @customElement("mushroom-light-brightness-control")
 export class LightBrighnessControl extends LitElement {
     @property({ attribute: false }) public hass!: HomeAssistant;
-
+    
     @property({ attribute: false }) public entity!: LightEntity;
 
-    _timer!: NodeJS.Timeout | null;
-    _percent!: number;
+    _timer?: number;
+    _percent?: number;
     
     onChange(e: CustomEvent<{ value: number }>): void {
         const value: number = e.detail.value;
@@ -54,16 +54,21 @@ export class LightBrighnessControl extends LitElement {
             );
             
             // Set timer to prevent delay issues
-            this._timer = setTimeout(async () => { 
+            this._timer = window.setTimeout(() => { 
                 this.hass.callService("light", "turn_on", {
                     entity_id: this.entity.entity_id,
                     brightness_pct: this._percent,
                 });
-                this._timer = null;
+
+                this._timer = undefined;
             }, 25);
 
             forwardHaptic("light");
         }
+    }
+
+    finished(): void {
+        this._percent = undefined;
     }
 
     protected render(): TemplateResult {
@@ -78,6 +83,7 @@ export class LightBrighnessControl extends LitElement {
                 .showActive=${true}
                 @change=${this.onChange}
                 @current-change=${this.onCurrentChange}
+                @finished=${this.finished}
             />
         `;
     }
