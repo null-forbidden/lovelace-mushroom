@@ -5,6 +5,8 @@ import { customElement, property } from "lit/decorators.js";
 import { HomeAssistant, isActive, isAvailable } from "../../../ha";
 import "../../../shared/slider";
 import { forwardHaptic } from "../../../ha/data/haptics";
+import { delay } from "../utils";
+import { FINISHED_FEEDBACK_DELAY, LIVE_FEEDBACK_DELAY } from "../const";
 
 const GRADIENT = [
     [0, "#f00"],
@@ -76,14 +78,18 @@ export class LightColorControl extends LitElement {
                 }
 
                 this._timer = undefined;
-            }, 25);
+            }, LIVE_FEEDBACK_DELAY);
 
             forwardHaptic("selection");
         }
     }
 
     finished(): void {
-        this._percent = undefined;
+        delay(FINISHED_FEEDBACK_DELAY).then(() => {
+            this._percent = undefined;
+            
+            forwardHaptic("success");
+        });
     }
 
     protected render(): TemplateResult {

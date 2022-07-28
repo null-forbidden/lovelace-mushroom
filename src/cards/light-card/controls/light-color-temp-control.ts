@@ -2,8 +2,9 @@ import { css, CSSResultGroup, html, LitElement, TemplateResult } from "lit";
 import { customElement, property } from "lit/decorators.js";
 import { HomeAssistant, isActive, isAvailable, LightEntity } from "../../../ha";
 import "../../../shared/slider";
-import { getColorTemp } from "../utils";
+import { delay, getColorTemp } from "../utils";
 import { forwardHaptic } from "../../../ha/data/haptics";
+import { FINISHED_FEEDBACK_DELAY, LIVE_FEEDBACK_DELAY } from "../const";
 
 @customElement("mushroom-light-color-temp-control")
 export class LightColorTempControl extends LitElement {
@@ -25,8 +26,6 @@ export class LightColorTempControl extends LitElement {
                 entity_id: this.entity.entity_id,
                 color_temp: this._percent,
             });
-
-            forwardHaptic("selection");
         }
     }
 
@@ -46,14 +45,18 @@ export class LightColorTempControl extends LitElement {
                     color_temp: this._percent,
                 });
                 this._timer = undefined;
-            }, 25);
+            }, LIVE_FEEDBACK_DELAY);
             
             forwardHaptic("selection");
         }
     }
 
     finished(): void {
-        this._percent = undefined;
+        delay(FINISHED_FEEDBACK_DELAY).then(() => {
+            this._percent = undefined;
+            
+            forwardHaptic("success");
+        });
     }
 
     protected render(): TemplateResult {

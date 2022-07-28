@@ -39,3 +39,7 @@ export function supportsColorControl(entity: LightEntity): boolean {
 export function supportsBrightnessControl(entity: LightEntity): boolean {
     return lightSupportsDimming(entity);
 }
+
+export function delay(milliseconds: number): Promise<void> {
+    return new Promise(resolve => window.setTimeout( resolve, milliseconds));
+}
