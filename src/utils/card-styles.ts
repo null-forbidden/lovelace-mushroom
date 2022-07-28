@@ -8,6 +8,9 @@ export const cardStyle = css`
         flex-direction: column;
         justify-content: var(--layout-align);
         height: auto;
+
+        -webkit-tap-highlight-color: rgba(0,0,0,0);
+        -webkit-tap-highlight-color: transparent;
     }
     ha-card.fill-container {
         height: 100%;

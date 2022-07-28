@@ -20,7 +20,7 @@ const IGNORED_FILES = [
 const dev = process.env.ROLLUP_WATCH;
 
 const serveOptions = {
-    contentBase: ["./dist"],
+    contentBase: ["./../dist"],
     host: "0.0.0.0",
     port: 5000,
     allowCrossOrigin: true,
@@ -50,7 +50,7 @@ export default [
     {
         input: "src/mushroom.ts",
         output: {
-            dir: "dist",
+            dir: "../dist",
             format: "es",
         },
         plugins,
