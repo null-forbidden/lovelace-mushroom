@@ -27,6 +27,13 @@ declare global {
     }
 }
 
-export const forwardHaptic = (hapticType: HapticType) => {
-    fireEvent(window, "haptic", hapticType);
+export const isMobile = (): RegExpMatchArray | null => {
+    const nav = navigator.userAgent.toLowerCase();
+    return (
+        nav.match(/iphone/i) || nav.match(/ipod/i) || nav.match(/ipad/i) || nav.match(/android/i)
+    );
+};
+
+export const forwardHaptic = (hapticType: HapticType): void => {
+    if(isMobile()) fireEvent(window, "haptic", hapticType);
 };

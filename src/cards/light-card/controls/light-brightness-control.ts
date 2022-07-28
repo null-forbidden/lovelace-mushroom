@@ -29,7 +29,7 @@ export class LightBrighnessControl extends LitElement {
                 brightness_pct: this._percent,
             });
 
-            forwardHaptic("light");
+            forwardHaptic("selection");
         }
     }
 

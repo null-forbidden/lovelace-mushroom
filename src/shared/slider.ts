@@ -82,23 +82,20 @@ export class SliderItem extends LitElement {
             this._mc.add(
                 new Hammer.Pan({
                     threshold,
-                    direction: Hammer.DIRECTION_ALL,
+                    direction: Hammer.DIRECTION_HORIZONTAL,
                     enable: true,
                 })
             );
 
-            this._mc.add(new Hammer.Tap({ event: "singletap" }));
+            this._mc.add(new Hammer.Tap({ event: "singletap", time: 1000, threshold: 1, taps: 1 }));
 
-            let savedValue;
             this._mc.on("panstart", () => {
                 if (this.disabled) return;
                 this.controlled = true;
-                savedValue = this.value;
             });
             this._mc.on("pancancel", () => {
                 if (this.disabled) return;
                 this.controlled = false;
-                this.value = savedValue;
             });
             this._mc.on("panmove", (e) => {
                 if (this.disabled) return;

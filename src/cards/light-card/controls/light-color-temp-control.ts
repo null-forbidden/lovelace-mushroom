@@ -26,7 +26,7 @@ export class LightColorTempControl extends LitElement {
                 color_temp: this._percent,
             });
 
-            forwardHaptic("light");
+            forwardHaptic("selection");
         }
     }
 
@@ -48,7 +48,7 @@ export class LightColorTempControl extends LitElement {
                 this._timer = null;
             }, 25);
             
-            forwardHaptic("light");
+            forwardHaptic("selection");
         }
     }
 

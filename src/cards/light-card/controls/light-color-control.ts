@@ -50,7 +50,7 @@ export class LightColorControl extends LitElement {
                     rgb_color,
                 });
 
-                forwardHaptic("light");
+                forwardHaptic("selection");
             }
         }
     }
@@ -78,7 +78,7 @@ export class LightColorControl extends LitElement {
                 this._timer = null;
             }, 25);
 
-            forwardHaptic("light");
+            forwardHaptic("selection");
         }
     }
 
