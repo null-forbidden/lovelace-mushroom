@@ -109,8 +109,18 @@ export const handleAction = async (
         }
         case "toggle": {
             if (config.entity) {
-                toggleEntity(hass, config.entity!);
-                forwardHaptic("success");
+                if(hass.states[config.entity].state == "unavailable")
+                {
+                    showToast(node, {
+                        message: "Device is not available, please check connection.",
+                    });
+                    forwardHaptic("failure");
+                }
+                else
+                {
+                    toggleEntity(hass, config.entity!);
+                    forwardHaptic("success");
+                }
             } else {
                 showToast(node, {
                     message: hass.localize("ui.panel.lovelace.cards.actions.no_entity_toggle"),

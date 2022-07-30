@@ -167,7 +167,7 @@ export class LightCard extends MushroomBaseCard implements LovelaceCard {
 
         const controls: LightCardControl[] = [];
         if (!this._config.collapsible_controls || isActive(entity)) {
-            if (this._config.show_brightness_control && supportsBrightnessControl(entity) && (!supportsColorTempControl(entity) || !supportsColorControl(entity))) {
+            if (this._config.show_brightness_control && supportsBrightnessControl(entity) && !supportsColorTempControl(entity) && !supportsColorControl(entity)) {
                 controls.push("brightness_control");
             }
             if (this._config.show_color_temp_control && supportsColorTempControl(entity)) {
