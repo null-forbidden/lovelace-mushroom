@@ -108,7 +108,7 @@ export class LightCard extends MushroomBaseCard implements LovelaceCard {
         {
             this.hass.callService("light", "turn_on", {
                 entity_id: entity_id,
-                hs_color: entity.attributes.hs_color
+                rgb_color: [255, 0, 0]
             });
         }
     }
