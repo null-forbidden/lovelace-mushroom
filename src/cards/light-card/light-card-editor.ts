@@ -22,6 +22,7 @@ export const LIGHT_LABELS = [
     "show_all_controls",
     "default_kelvin",
     "default_rgb",
+    "disable_auto_switch_mode",
 ];
 
 const computeSchema = memoizeOne((icon?: string): HaFormSchema[] => [
@@ -41,6 +42,7 @@ const computeSchema = memoizeOne((icon?: string): HaFormSchema[] => [
             { name: "collapsible_controls", selector: { boolean: {} } },
             { name: "default_kelvin", selector: { number: {min: 1, max: 10000} } },
             { name: "default_rgb", selector: { color_rgb: {} } },
+            { name: "disable_auto_switch_mode", selector: { boolean: {} } },
         ],
     },
     ...computeActionsFormSchema(),

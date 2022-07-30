@@ -87,14 +87,14 @@ export class LightCard extends MushroomBaseCard implements LovelaceCard {
 
     @state() private _savedColorTemp?: number;
 
-    @state() private _savedHSColor?: number[];
+    @state() private _savedHSColor?: number[] = [];
 
-    _onControlTap(ctrl, e): void {
+    _onControlTap(ctrl: LightCardControl, e): void {
         forwardHaptic("medium");
 
         e.stopPropagation();
         
-        if(this._config && this._config.entity)
+        if(this._config && this._config.entity && !this._config.disable_auto_switch_mode && (ctrl == "color_temp_control" || ctrl == "color_control"))
         {
             const entity_id = this._config.entity;
             const entity = this.hass.states[entity_id] as LightEntity;
@@ -107,8 +107,7 @@ export class LightCard extends MushroomBaseCard implements LovelaceCard {
 
             let data: Record<string, any> = { entity_id: this._config.entity };
 
-            if(ctrl == "color_temp_control")
-            {
+            if(ctrl == "color_temp_control") {
                 if(this._config.default_kelvin) {
                     data["kelvin"] = this._config.default_kelvin
                 } else if(this._savedColorTemp) {
@@ -116,10 +115,9 @@ export class LightCard extends MushroomBaseCard implements LovelaceCard {
                 } else {
                     data["color_name"] = "undefined" // Hack to switch back to color_temp mode with previous color_temp
                 }
-
-                console.log("color_temp_control: ", data)
-                this.hass.callService("light", "turn_on", data);
             } else if(ctrl == "color_control") {
+                this._savedColorTemp = entity.attributes.color_temp;
+                
                 if(this._config.default_rgb) {
                     data["rgb_color"] = this._config.default_rgb
                 } else if(this._savedHSColor) {
@@ -127,10 +125,9 @@ export class LightCard extends MushroomBaseCard implements LovelaceCard {
                 } else {
                     data["rgb_color"] = [255, 0, 0]
                 }
-
-                console.log("color_control: ", data)
-                this.hass.callService("light", "turn_on", data);
             }
+
+            this.hass.callService("light", "turn_on", data);
         }
 
         this._activeControl = ctrl;

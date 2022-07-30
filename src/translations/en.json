@@ -61,6 +61,7 @@
                 "show_all_controls": "Show all controls?",
                 "default_kelvin": "Default kelvin value",
                 "default_rgb": "Default RGB value",
+                "disable_auto_switch_mode": "Disable auto switch mode",
                 "incompatible_controls": "Some controls may not be displayed if your light does not support the feature."
             },
             "fan": {

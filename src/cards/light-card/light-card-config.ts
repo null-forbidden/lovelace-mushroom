@@ -20,6 +20,7 @@ export type LightCardConfig = LovelaceCardConfig &
         use_light_color?: boolean;
         default_kelvin?: number;
         default_rgb?: number[];
+        disable_auto_switch_mode?: boolean;
     };
 
 export const lightCardConfigStruct = assign(
@@ -34,5 +35,6 @@ export const lightCardConfigStruct = assign(
         use_light_color: optional(boolean()),
         default_kelvin: optional(number()),
         default_rgb: optional(object()),
+        disable_auto_switch_mode: optional(boolean()),
     })
 );
