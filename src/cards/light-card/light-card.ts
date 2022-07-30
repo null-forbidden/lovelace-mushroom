@@ -85,30 +85,55 @@ export class LightCard extends MushroomBaseCard implements LovelaceCard {
 
     @state() private _controls: LightCardControl[] = [];
 
+    @state() private _savedColorTemp?: number;
+
+    @state() private _savedHSColor?: number[];
+
     _onControlTap(ctrl, e): void {
         forwardHaptic("medium");
 
         e.stopPropagation();
-        this._activeControl = ctrl;
-
-        if(this._config)
+        
+        if(this._config && this._config.entity)
         {
-            if(this._activeControl == "color_temp_control")
-            {
-                this.hass.callService("light", "turn_on", {
-                    entity_id: this._config.entity,
-                    kelvin: this._config.default_kelvin ? this._config.default_kelvin : 2800
-                });
+            const entity_id = this._config.entity;
+            const entity = this.hass.states[entity_id] as LightEntity;
+
+            if(entity.attributes.color_mode == LightColorModes.COLOR_TEMP) {
+                this._savedColorTemp = entity.attributes.color_temp;
+            } else if(entity.attributes.color_mode == LightColorModes.HS) {
+                this._savedHSColor = entity.attributes.hs_color;
             }
-            
-            if(this._activeControl == "color_control")
+
+            let data: Record<string, any> = { entity_id: this._config.entity };
+
+            if(ctrl == "color_temp_control")
             {
-                this.hass.callService("light", "turn_on", {
-                    entity_id: this._config.entity,
-                    rgb_color: this._config.default_rgb ? this._config.default_rgb : [255, 0, 0]
-                });
+                if(this._config.default_kelvin) {
+                    data["kelvin"] = this._config.default_kelvin
+                } else if(this._savedColorTemp) {
+                    data["color_temp"] = this._savedColorTemp
+                } else {
+                    data["color_name"] = "undefined" // Hack to switch back to color_temp mode with previous color_temp
+                }
+
+                console.log("color_temp_control: ", data)
+                this.hass.callService("light", "turn_on", data);
+            } else if(ctrl == "color_control") {
+                if(this._config.default_rgb) {
+                    data["rgb_color"] = this._config.default_rgb
+                } else if(this._savedHSColor) {
+                    data["hs_color"] = this._savedHSColor
+                } else {
+                    data["rgb_color"] = [255, 0, 0]
+                }
+
+                console.log("color_control: ", data)
+                this.hass.callService("light", "turn_on", data);
             }
         }
+
+        this._activeControl = ctrl;
     }
 
     getCardSize(): number | Promise<number> {
