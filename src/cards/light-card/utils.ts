@@ -18,7 +18,7 @@ export function getRGBColor(entity: LightEntity): number[] | undefined {
 }
 
 export function getColorSaturation(entity: LightEntity): number | undefined {
-    return entity.attributes.hs_color[1] != null ? entity.attributes.hs_color[1] : undefined;
+    return entity.attributes.hs_color != null ? entity.attributes.hs_color[1] : undefined;
 }
 
 export function isColorLight(rgb: number[]): boolean {

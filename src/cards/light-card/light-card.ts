@@ -97,7 +97,7 @@ export class LightCard extends MushroomBaseCard implements LovelaceCard {
             {
                 this.hass.callService("light", "turn_on", {
                     entity_id: this._config.entity,
-                    kelvin: 2800
+                    kelvin: this._config.default_kelvin ? this._config.default_kelvin : 2800
                 });
             }
             
@@ -105,7 +105,7 @@ export class LightCard extends MushroomBaseCard implements LovelaceCard {
             {
                 this.hass.callService("light", "turn_on", {
                     entity_id: this._config.entity,
-                    rgb_color: [255, 0, 0]
+                    rgb_color: this._config.default_rgb ? this._config.default_rgb : [255, 0, 0]
                 });
             }
         }

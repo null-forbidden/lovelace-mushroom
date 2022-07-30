@@ -59,6 +59,8 @@
                 "show_color_temp_control": "Temperature color control?",
                 "show_color_control": "Color control?",
                 "show_all_controls": "Show all controls?",
+                "default_kelvin": "Default kelvin value",
+                "default_rgb": "Default RGB value",
                 "incompatible_controls": "Some controls may not be displayed if your light does not support the feature."
             },
             "fan": {
