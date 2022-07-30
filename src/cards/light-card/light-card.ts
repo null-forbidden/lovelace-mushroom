@@ -87,7 +87,7 @@ export class LightCard extends MushroomBaseCard implements LovelaceCard {
 
     @state() private _savedColorTemp?: number;
 
-    @state() private _savedHSColor?: number[] = [];
+    @state() private _savedHSColor?: number[];
 
     _onControlTap(ctrl: LightCardControl, e): void {
         forwardHaptic("medium");
@@ -115,9 +115,7 @@ export class LightCard extends MushroomBaseCard implements LovelaceCard {
                 } else {
                     data["color_name"] = "undefined" // Hack to switch back to color_temp mode with previous color_temp
                 }
-            } else if(ctrl == "color_control") {
-                this._savedColorTemp = entity.attributes.color_temp;
-                
+            } else if(ctrl == "color_control") {                
                 if(this._config.default_rgb) {
                     data["rgb_color"] = this._config.default_rgb
                 } else if(this._savedHSColor) {
