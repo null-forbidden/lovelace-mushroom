@@ -1,41 +1,19 @@
-import * as Color from "color";
-import { HassEntity } from "home-assistant-js-websocket";
 import { css, CSSResultGroup, html, LitElement, TemplateResult, unsafeCSS } from "lit";
 import { customElement, property } from "lit/decorators.js";
-import { HomeAssistant, isActive, isAvailable } from "../../../ha";
+import { HomeAssistant, isActive, isAvailable, LightEntity } from "../../../ha";
 import "../../../shared/slider";
 import { forwardHaptic } from "../../../ha/data/haptics";
-import { delay } from "../utils";
+import { delay, getColorSaturation } from "../utils";
 import { FINISHED_FEEDBACK_DELAY, LIVE_FEEDBACK_DELAY } from "../const";
 
-const GRADIENT = [
-    [0, "#f00"],
-    [0.17, "#ff0"],
-    [0.33, "#0f0"],
-    [0.5, "#0ff"],
-    [0.66, "#00f"],
-    [0.83, "#f0f"],
-    [1, "#f00"],
-];
-
-@customElement("mushroom-light-color-control")
+@customElement("mushroom-light-color-saturation-control")
 export class LightColorControl extends LitElement {
     @property({ attribute: false }) public hass!: HomeAssistant;
 
-    @property({ attribute: false }) public entity!: HassEntity;
+    @property({ attribute: false }) public entity!: LightEntity;
 
     _timer?: number;
     _percent?: number;
-
-    _percentToRGB(percent: number): number[] {
-        const color = Color.hsv(360 * percent, 100, 100);
-        return color.rgb().array();
-    }
-
-    _rgbToPercent(rgb: number[]): number {
-        const color = Color.rgb(rgb);
-        return color.hsv().hue() / 360;
-    }
 
     onChange(e: CustomEvent<{ value: number }>): void {
         const value: number = e.detail.value;
@@ -43,16 +21,16 @@ export class LightColorControl extends LitElement {
         if (this._percent != value) {
             this._percent = value;
 
-            const rgb_color = this._percentToRGB(this._percent / 100);
+            const hue_color = this.entity.attributes.hs_color[0];
 
-            if (rgb_color.length === 3) {
-                this.hass.callService("light", "turn_on", {
-                    entity_id: this.entity.entity_id,
-                    rgb_color,
-                });
+            console.log(this.entity)
 
-                forwardHaptic("selection");
-            }
+            this.hass.callService("light", "turn_on", {
+                entity_id: this.entity.entity_id,
+                hs_color: [hue_color, this._percent],
+            });
+
+            forwardHaptic("selection");
         }
     }
 
@@ -66,14 +44,12 @@ export class LightColorControl extends LitElement {
 
             // Set timer to prevent delay issues
             this._timer = window.setTimeout(() => {
-                const rgb_color = this._percentToRGB(this._percent! / 100);
-
-                if (rgb_color.length === 3) {
-                    this.hass.callService("light", "turn_on", {
-                        entity_id: this.entity.entity_id,
-                        rgb_color,
-                    });
-                }
+                const hue_color = this.entity.attributes.hs_color[0];
+    
+                this.hass.callService("light", "turn_on", {
+                    entity_id: this.entity.entity_id,
+                    hs_color: [hue_color, this._percent],
+                });
 
                 this._timer = undefined;
             }, LIVE_FEEDBACK_DELAY);
@@ -91,16 +67,15 @@ export class LightColorControl extends LitElement {
     }
 
     protected render(): TemplateResult {
-        const colorPercent =
-            this._percent || this._rgbToPercent(this.entity.attributes.rgb_color) * 100;
+        const colorPercent = this._percent || getColorSaturation(this.entity);
 
         return html`
             <mushroom-slider
                 .value=${colorPercent}
                 .disabled=${!isAvailable(this.entity)}
                 .inactive=${!isActive(this.entity)}
-                .min=${0}
-                .max=${99 /* max 99 because 100 is also 0 */}
+                .min=${10}
+                .max=${100}
                 .showIndicator=${true}
                 @change=${this.onChange}
                 @current-change=${this.onCurrentChange}
@@ -110,12 +85,9 @@ export class LightColorControl extends LitElement {
     }
 
     static get styles(): CSSResultGroup {
-        const gradient = GRADIENT.map(
-            ([stop, color]) => `${color} ${(stop as number) * 100}%`
-        ).join(", ");
         return css`
             mushroom-slider {
-                --gradient: -webkit-linear-gradient(left, ${unsafeCSS(gradient)});
+                --gradient: -webkit-linear-gradient(right, var(--fixed-color) 0%, white 125%);
             }
         `;
     }

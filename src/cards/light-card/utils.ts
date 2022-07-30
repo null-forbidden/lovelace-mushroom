@@ -17,6 +17,10 @@ export function getRGBColor(entity: LightEntity): number[] | undefined {
     return entity.attributes.rgb_color != null ? entity.attributes.rgb_color : undefined;
 }
 
+export function getColorSaturation(entity: LightEntity): number | undefined {
+    return entity.attributes.hs_color[1] != null ? entity.attributes.hs_color[1] : undefined;
+}
+
 export function isColorLight(rgb: number[]): boolean {
     const color = Color.rgb(rgb);
     return color.l() > 96;
@@ -29,6 +33,12 @@ export function isColorSuperLight(rgb: number[]): boolean {
 export function supportsColorTempControl(entity: LightEntity): boolean {
     return entity.attributes.supported_color_modes?.some((m) =>
         [LightColorModes.COLOR_TEMP].includes(m)
+    );
+}
+
+export function supportsColorSaturationControl(entity: LightEntity): boolean {
+    return entity.attributes.supported_color_modes?.some((m) =>
+        [LightColorModes.HS].includes(m)
     );
 }
 

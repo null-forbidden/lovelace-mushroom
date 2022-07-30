@@ -12,6 +12,7 @@ export type LightCardConfig = LovelaceCardConfig &
     EntitySharedConfig &
     AppearanceSharedConfig &
     ActionsSharedConfig & {
+        show_all_controls?: boolean;
         show_brightness_control?: boolean;
         show_color_temp_control?: boolean;
         show_color_control?: boolean;
@@ -23,6 +24,7 @@ export const lightCardConfigStruct = assign(
     lovelaceCardConfigStruct,
     assign(entitySharedConfigStruct, appearanceSharedConfigStruct, actionsSharedConfigStruct),
     object({
+        show_all_controls: optional(boolean()),
         show_brightness_control: optional(boolean()),
         show_color_temp_control: optional(boolean()),
         show_color_control: optional(boolean()),

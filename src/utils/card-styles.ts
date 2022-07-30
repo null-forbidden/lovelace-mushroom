@@ -16,11 +16,7 @@ export const cardStyle = css`
         height: 100%;
     }
     .actions {
-        height: 63px;
-        display: flex;
-        flex-direction: row;
-        align-items: flex-start;
-        justify-content: flex-start;
+        height: 100%;
         overflow-x: auto;
         overflow-y: hidden;
         scrollbar-width: none; /* Firefox */

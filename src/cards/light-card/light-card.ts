@@ -11,6 +11,7 @@ import {
     hasAction,
     HomeAssistant,
     isActive,
+    LightColorModes,
     LightEntity,
     LovelaceCard,
     LovelaceCardEditor,
@@ -32,6 +33,7 @@ import { LIGHT_CARD_EDITOR_NAME, LIGHT_CARD_NAME, LIGHT_ENTITY_DOMAINS } from ".
 import "./controls/light-brightness-control";
 import "./controls/light-color-control";
 import "./controls/light-color-temp-control";
+import "./controls/light-color-saturation-control";
 import { LightCardConfig } from "./light-card-config";
 import {
     getBrightness,
@@ -40,16 +42,19 @@ import {
     isColorSuperLight,
     supportsBrightnessControl,
     supportsColorControl,
+    supportsColorSaturationControl,
     supportsColorTempControl,
 } from "./utils";
 import { forwardHaptic } from "../../ha/data/haptics";
+import * as Color from "color";
 
-type LightCardControl = "brightness_control" | "color_temp_control" | "color_control";
+type LightCardControl = "all_controls" | "brightness_control" | "color_temp_control" | "color_control";
 
 const CONTROLS_ICONS: Record<LightCardControl, string> = {
+    all_controls: "mdi:expand-all",
     brightness_control: "mdi:brightness-4",
     color_temp_control: "mdi:thermometer",
-    color_control: "mdi:palette",
+    color_control: "mdi:palette"
 };
 
 registerCustomCard({
@@ -81,6 +86,7 @@ export class LightCard extends MushroomBaseCard implements LovelaceCard {
     @state() private _controls: LightCardControl[] = [];
 
     _onControlTap(ctrl, e): void {
+        //TODO: Activate tapped light mode
         forwardHaptic("medium");
 
         e.stopPropagation();
@@ -143,7 +149,7 @@ export class LightCard extends MushroomBaseCard implements LovelaceCard {
 
         const controls: LightCardControl[] = [];
         if (!this._config.collapsible_controls || isActive(entity)) {
-            if (this._config.show_brightness_control && supportsBrightnessControl(entity)) {
+            if (this._config.show_brightness_control && supportsBrightnessControl(entity) && (!supportsColorTempControl(entity) || !supportsColorControl(entity))) {
                 controls.push("brightness_control");
             }
             if (this._config.show_color_temp_control && supportsColorTempControl(entity)) {
@@ -152,12 +158,24 @@ export class LightCard extends MushroomBaseCard implements LovelaceCard {
             if (this._config.show_color_control && supportsColorControl(entity)) {
                 controls.push("color_control");
             }
+            if (this._config.show_all_controls && (supportsBrightnessControl(entity) || supportsColorTempControl(entity) || supportsColorControl(entity) || supportsColorSaturationControl(entity))) {
+                controls.push("all_controls");
+            }
         }
+
         this._controls = controls;
+
         const isActiveControlSupported = this._activeControl
             ? controls.includes(this._activeControl)
             : false;
-        this._activeControl = isActiveControlSupported ? this._activeControl : controls[0];
+
+        if(!isActiveControlSupported) {
+            if(entity.attributes.color_mode == LightColorModes.HS) {
+                this._activeControl = controls[controls.findIndex(x => x == "color_control")]
+            } else {
+                this._activeControl = controls[0];
+            }
+        }
     }
 
     private _handleAction(ev: ActionHandlerEvent) {
@@ -254,18 +272,61 @@ export class LightCard extends MushroomBaseCard implements LovelaceCard {
     }
 
     private renderActiveControl(entity: LightEntity): TemplateResult | null {
+        const lightRgbColor = getRGBColor(entity);
+        const sliderStyle = {};
+        const lightColorStyle = {};
+
+        const supportsBrightness = supportsBrightnessControl(entity);
+        const supportsColorTemp = supportsColorTempControl(entity);
+        const supportsColor = supportsColorControl(entity);
+        const supportsColorSaturation = supportsColorSaturationControl(entity);
+
         switch (this._activeControl) {
+            case "all_controls":
+                if (supportsBrightness && lightRgbColor && this._config?.use_light_color) {
+                    const color = lightRgbColor.join(",");
+                    sliderStyle["--slider-color"] = `rgb(${color})`;
+                    sliderStyle["--slider-bg-color"] = `rgba(${color}, 0.2)`;
+                    if (isColorLight(lightRgbColor) && !(this.hass.themes as any).darkMode) {
+                        sliderStyle["--slider-bg-color"] = `rgba(var(--rgb-primary-text-color), 0.05)`;
+                        sliderStyle["--slider-color"] = `rgba(var(--rgb-primary-text-color), 0.15)`;
+                    }
+                }
+                
+                if (this._config?.show_color_control && supportsColorSaturation) {
+                    const fixedColor = Color.hsv(entity.attributes.hs_color[0], 100, 100);
+                    lightColorStyle["--fixed-color"] = `rgb(${fixedColor.rgb().array()})`;
+                    lightColorStyle["--fixed-color-transparent"] = `rgb(${fixedColor.rgb().array()}, 0.1)`;
+                }
+
+                return html`
+                    ${supportsBrightness ? html`
+                        <mushroom-light-brightness-control
+                            .hass=${this.hass}
+                            .entity=${entity}
+                            style=${styleMap(sliderStyle)}
+                            @current-change=${this.onCurrentBrightnessChange}
+                        />` : null }
+
+                    ${supportsColorTemp ? html`
+                        <mushroom-light-color-temp-control .hass=${this.hass} .entity=${entity} />
+                    ` : null}
+
+                    ${supportsColor ? html`
+                        <mushroom-light-color-control .hass=${this.hass} .entity=${entity} />
+                    `: null}
+
+                    ${supportsColorSaturation ? html`
+                        <mushroom-light-color-saturation-control .hass=${this.hass} .entity=${entity} style=${styleMap(lightColorStyle)} />
+                    `: null}
+                `;
             case "brightness_control":
-                const lightRgbColor = getRGBColor(entity);
-                const sliderStyle = {};
                 if (lightRgbColor && this._config?.use_light_color) {
                     const color = lightRgbColor.join(",");
                     sliderStyle["--slider-color"] = `rgb(${color})`;
                     sliderStyle["--slider-bg-color"] = `rgba(${color}, 0.2)`;
                     if (isColorLight(lightRgbColor) && !(this.hass.themes as any).darkMode) {
-                        sliderStyle[
-                            "--slider-bg-color"
-                        ] = `rgba(var(--rgb-primary-text-color), 0.05)`;
+                        sliderStyle[ "--slider-bg-color"] = `rgba(var(--rgb-primary-text-color), 0.05)`;
                         sliderStyle["--slider-color"] = `rgba(var(--rgb-primary-text-color), 0.15)`;
                     }
                 }
@@ -278,12 +339,62 @@ export class LightCard extends MushroomBaseCard implements LovelaceCard {
                     />
                 `;
             case "color_temp_control":
+                if (this._config?.show_brightness_control && supportsBrightness && lightRgbColor && this._config?.use_light_color) {
+                    const color = lightRgbColor.join(",");
+                    sliderStyle["--slider-color"] = `rgb(${color})`;
+                    sliderStyle["--slider-bg-color"] = `rgba(${color}, 0.2)`;
+                    if (isColorLight(lightRgbColor) && !(this.hass.themes as any).darkMode) {
+                        sliderStyle[ "--slider-bg-color"] = `rgba(var(--rgb-primary-text-color), 0.05)`;
+                        sliderStyle["--slider-color"] = `rgba(var(--rgb-primary-text-color), 0.15)`;
+                    }
+                }
+                
                 return html`
-                    <mushroom-light-color-temp-control .hass=${this.hass} .entity=${entity} />
+                    ${this._config?.show_brightness_control && supportsBrightness ? html`
+                        <mushroom-light-brightness-control
+                            .hass=${this.hass}
+                            .entity=${entity}
+                            style=${styleMap(sliderStyle)}
+                            @current-change=${this.onCurrentBrightnessChange}
+                        />` : null }
+
+                    ${html`
+                        <mushroom-light-color-temp-control .hass=${this.hass} .entity=${entity} />
+                    `}
                 `;
             case "color_control":
+                if (this._config?.show_brightness_control && supportsBrightness && lightRgbColor && this._config?.use_light_color) {
+                    const color = lightRgbColor.join(",");
+                    sliderStyle["--slider-color"] = `rgb(${color})`;
+                    sliderStyle["--slider-bg-color"] = `rgba(${color}, 0.2)`;
+                    if (isColorLight(lightRgbColor) && !(this.hass.themes as any).darkMode) {
+                        sliderStyle["--slider-bg-color"] = `rgba(var(--rgb-primary-text-color), 0.05)`;
+                        sliderStyle["--slider-color"] = `rgba(var(--rgb-primary-text-color), 0.15)`;
+                    }
+                }
+                
+                if (supportsColorSaturation) {
+                    const fixedColor = Color.hsv(entity.attributes.hs_color[0], 100, 100);
+                    lightColorStyle["--fixed-color"] = `rgb(${fixedColor.rgb().array()})`;
+                    lightColorStyle["--fixed-color-transparent"] = `rgb(${fixedColor.rgb().array()}, 0.1)`;
+                }
+                
                 return html`
-                    <mushroom-light-color-control .hass=${this.hass} .entity=${entity} />
+                    ${this._config?.show_brightness_control && supportsBrightness ? html`
+                        <mushroom-light-brightness-control
+                            .hass=${this.hass}
+                            .entity=${entity}
+                            style=${styleMap(sliderStyle)}
+                            @current-change=${this.onCurrentBrightnessChange}
+                        />` : null }
+
+                    ${html`
+                        <mushroom-light-color-control .hass=${this.hass} .entity=${entity} />
+                    `}
+
+                    ${supportsColorSaturation ? html`
+                        <mushroom-light-color-saturation-control .hass=${this.hass} .entity=${entity} style=${styleMap(lightColorStyle)} />
+                    `: null}
                 `;
             default:
                 return null;
