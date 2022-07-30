@@ -23,8 +23,6 @@ export class LightColorControl extends LitElement {
 
             const hue_color = this.entity.attributes.hs_color[0];
 
-            console.log(this.entity)
-
             this.hass.callService("light", "turn_on", {
                 entity_id: this.entity.entity_id,
                 hs_color: [hue_color, this._percent],

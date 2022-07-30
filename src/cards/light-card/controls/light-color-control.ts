@@ -92,7 +92,7 @@ export class LightColorControl extends LitElement {
 
     protected render(): TemplateResult {
         const colorPercent =
-            this._percent || this._rgbToPercent(this.entity.attributes.rgb_color) * 100;
+            this._percent || Math.round(this._rgbToPercent(this.entity.attributes.rgb_color) * 100);
 
         return html`
             <mushroom-slider
