@@ -91,25 +91,23 @@ export class LightCard extends MushroomBaseCard implements LovelaceCard {
         e.stopPropagation();
         this._activeControl = ctrl;
 
-        if (!this._config || !this.hass || !this._config.entity) return;
-
-        const entity_id = this._config.entity;
-        const entity = this.hass.states[entity_id] as LightEntity;
-        
-        if(this._activeControl == "color_temp_control")
+        if(this._config)
         {
-            this.hass.callService("light", "turn_on", {
-                entity_id: entity_id,
-                kelvin: 2800
-            });
-        }
-        
-        if(this._activeControl == "color_control")
-        {
-            this.hass.callService("light", "turn_on", {
-                entity_id: entity_id,
-                rgb_color: [255, 0, 0]
-            });
+            if(this._activeControl == "color_temp_control")
+            {
+                this.hass.callService("light", "turn_on", {
+                    entity_id: this._config.entity,
+                    kelvin: 2800
+                });
+            }
+            
+            if(this._activeControl == "color_control")
+            {
+                this.hass.callService("light", "turn_on", {
+                    entity_id: this._config.entity,
+                    rgb_color: [255, 0, 0]
+                });
+            }
         }
     }
 
