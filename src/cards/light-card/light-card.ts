@@ -311,7 +311,7 @@ export class LightCard extends MushroomBaseCard implements LovelaceCard {
                     }
                 }
                 
-                if (this._config?.show_color_control && supportsColorSaturation) {
+                if (this._config?.show_color_control && supportsColorSaturation && entity.attributes.hs_color) {
                     const fixedColor = Color.hsv(entity.attributes.hs_color[0], 100, 100);
                     lightColorStyle["--fixed-color"] = `rgb(${fixedColor.rgb().array()})`;
                     lightColorStyle["--fixed-color-transparent"] = `rgb(${fixedColor.rgb().array()}, 0.1)`;
@@ -391,7 +391,7 @@ export class LightCard extends MushroomBaseCard implements LovelaceCard {
                     }
                 }
                 
-                if (supportsColorSaturation) {
+                if (this._config?.show_color_control && supportsColorSaturation && entity.attributes.hs_color) {
                     const fixedColor = Color.hsv(entity.attributes.hs_color[0], 100, 100);
                     lightColorStyle["--fixed-color"] = `rgb(${fixedColor.rgb().array()})`;
                     lightColorStyle["--fixed-color-transparent"] = `rgb(${fixedColor.rgb().array()}, 0.1)`;
