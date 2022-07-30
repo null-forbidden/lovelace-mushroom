@@ -182,8 +182,8 @@ export class CoverCard extends MushroomBaseCard implements LovelaceCard {
                         ? html`
                               <div class="actions" ?rtl=${rtl}>
                                   ${this.renderActiveControl(entity, appearance.layout)}
-                                  ${this.renderNextControlButton()}
                               </div>
+                              <div class="actionButtons">${this.renderNextControlButton()}</div>
                           `
                         : null}
                 </mushroom-card>

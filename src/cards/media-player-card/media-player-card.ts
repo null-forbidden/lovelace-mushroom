@@ -199,8 +199,8 @@ export class MediaPlayerCard extends MushroomBaseCard implements LovelaceCard {
                         ? html`
                               <div class="actions" ?rtl=${rtl}>
                                   ${this.renderActiveControl(entity, appearance.layout)}
-                                  ${this.renderOtherControls()}
                               </div>
+                              <div class="actionButtons">${this.renderOtherControls()}</div>
                           `
                         : null}
                 </mushroom-card>

@@ -175,8 +175,9 @@ export class ClimateCard extends MushroomBaseCard implements LovelaceCard {
                     ${this._controls.length > 0
                         ? html`
                               <div class="actions" ?rtl=${rtl}>
-                                  ${this.renderActiveControl(entity)}${this.renderOtherControls()}
+                                  ${this.renderActiveControl(entity)}
                               </div>
+                              <div class="actionButtons">${this.renderOtherControls()}</div>
                           `
                         : null}
                 </mushroom-card>
