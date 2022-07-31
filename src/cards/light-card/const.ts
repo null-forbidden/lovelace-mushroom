@@ -6,3 +6,4 @@ export const LIGHT_ENTITY_DOMAINS = ["light"];
 
 export const LIVE_FEEDBACK_DELAY = 30; //milliseconds
 export const FINISHED_FEEDBACK_DELAY = 50; //milliseconds
+export const OVERLAY_DELAY = 2500; //milliseconds

@@ -5,6 +5,7 @@ import { domainToName } from "../../../data/integration";
 import { ActionConfig } from "../../../data/lovelace";
 import { HomeAssistant } from "../../../types";
 import { toggleEntity } from "./entity/toggle-entity";
+import { UNAVAILABLE } from "../../../data/entity";
 
 export const handleAction = async (
     node: HTMLElement,
@@ -109,7 +110,7 @@ export const handleAction = async (
         }
         case "toggle": {
             if (config.entity) {
-                if(hass.states[config.entity].state == "unavailable")
+                if(hass.states[config.entity].state == UNAVAILABLE)
                 {
                     showToast(node, {
                         message: "Device is not available, please check connection.",

@@ -2,6 +2,7 @@
  * Broadcast haptic feedback requests
  */
 
+import { isMobile } from "../../utils/mobile";
 import { fireEvent, HASSDomEvent } from "../common/dom/fire_event";
 
 // Allowed types are from iOS HIG.
@@ -26,13 +27,6 @@ declare global {
         haptic: HASSDomEvent<HapticType>;
     }
 }
-
-export const isMobile = (): RegExpMatchArray | null => {
-    const nav = navigator.userAgent.toLowerCase();
-    return (
-        nav.match(/iphone/i) || nav.match(/ipod/i) || nav.match(/ipad/i) || nav.match(/android/i)
-    );
-};
 
 export const forwardHaptic = (hapticType: HapticType): void => {
     if (isMobile()) fireEvent(window, "haptic", hapticType);

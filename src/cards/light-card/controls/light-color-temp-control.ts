@@ -25,6 +25,10 @@ export class LightColorTempControl extends LitElement {
                 entity_id: this.entity.entity_id,
                 color_temp: this._percent,
             });
+            
+            this.dispatchEvent(new CustomEvent("change"));
+
+            forwardHaptic("selection");
         }
     }
 
@@ -35,6 +39,8 @@ export class LightColorTempControl extends LitElement {
             if (this._timer) clearTimeout(this._timer);
 
             this._percent = value;
+
+            this.dispatchEvent(new CustomEvent("change"));
 
             // Set timer to prevent delay issues
             this._timer = window.setTimeout(() => {
