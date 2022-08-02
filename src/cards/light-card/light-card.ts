@@ -28,8 +28,8 @@ import { MushroomBaseCard } from "../../utils/base-card";
 import { cardStyle } from "../../utils/card-styles";
 import { registerCustomCard } from "../../utils/custom-cards";
 import { stateIcon } from "../../utils/icons/state-icon";
-import { computeEntityPicture, computeInfoDisplay } from "../../utils/info";
-import { OVERLAY_DELAY, LIGHT_CARD_EDITOR_NAME, LIGHT_CARD_NAME, LIGHT_ENTITY_DOMAINS } from "./const";
+import { computeEntityPicture } from "../../utils/info";
+import { LIGHT_CARD_EDITOR_NAME, LIGHT_CARD_NAME, LIGHT_ENTITY_DOMAINS } from "./const";
 import "./controls/light-brightness-control";
 import "./controls/light-color-control";
 import "./controls/light-color-temp-control";
@@ -47,7 +47,6 @@ import {
 } from "./utils";
 import { forwardHaptic } from "../../ha/data/haptics";
 import * as Color from "color";
-import { isMobile } from "../../utils/mobile";
 
 type LightCardControl = "all_controls" | "brightness_control" | "color_temp_control" | "color_control";
 
@@ -86,29 +85,16 @@ export class LightCard extends MushroomBaseCard implements LovelaceCard {
 
     @state() private _controls: LightCardControl[] = [];
 
-    @state() private _savedColorTemp?: number;
+    @state() public showSliderOverlay: boolean = false;
 
-    @state() private _savedHSColor?: number[];
+    private _savedColorTemp?: number;
 
-    @state() private _showOverlay?: boolean;
-
-    @state() private _overlayTimer?: number;
-
-    _onOverlayTap(e): void {
-        forwardHaptic("medium");
-        
-        this._showOverlay = false;
-        this.setOverlayTimer();
-
-        e.stopPropagation();
-    }
+    private _savedHSColor?: number[];
 
     _onControlTap(ctrl: LightCardControl, e): void {
         forwardHaptic("medium");
 
         e.stopPropagation();
-
-        this.onChange();
         
         if(this._config && this._config.entity && !this._config.disable_auto_switch_mode && (ctrl == "color_temp_control" || ctrl == "color_control"))
         {
@@ -161,9 +147,6 @@ export class LightCard extends MushroomBaseCard implements LovelaceCard {
             },
             ...config,
         };
-        if(isMobile()) {
-            this._showOverlay = true;
-        }
         this.updateControls();
         this.updateBrightness();
     }
@@ -194,21 +177,6 @@ export class LightCard extends MushroomBaseCard implements LovelaceCard {
         if (e.detail.value && this.brightness != e.detail.value) {
             this.brightness = e.detail.value;
         }
-    }
-
-    private onChange(): void {
-        if(this._overlayTimer)
-        {
-            clearTimeout(this._overlayTimer);
-            this.setOverlayTimer();
-        }
-    }
-
-    private setOverlayTimer(): void {
-        this._overlayTimer = window.setTimeout(() => {
-            this._showOverlay = true
-            this._overlayTimer = undefined;
-        }, OVERLAY_DELAY);
     }
 
     updateControls() {
@@ -292,10 +260,7 @@ export class LightCard extends MushroomBaseCard implements LovelaceCard {
                     </mushroom-state-item>
                     ${this._controls.length > 0
                         ? html`
-                              <div class="actions" ?rtl=${rtl}>
-                                  ${this._showOverlay ? html`<div class="overlay" @click=${(e) => this._onOverlayTap(e)}><ha-icon class="icon" icon="mdi:lock" /></div>` : null}
-                                  ${this.renderActiveControl(entity)}
-                              </div>
+                              <div class="actions" ?rtl=${rtl}>${this.renderActiveControl(entity)}</div>
                               <div class="actionButtons">${this.renderOtherControls()}</div>
                           `
                         : null}
@@ -366,7 +331,7 @@ export class LightCard extends MushroomBaseCard implements LovelaceCard {
                     }
                 }
                 
-                if (this._config?.show_color_control && supportsColorSaturation && entity.attributes.hs_color) {
+                if (this._config?.show_all_controls && supportsColorSaturation && entity.attributes.hs_color) {
                     const fixedColor = Color.hsv(entity.attributes.hs_color[0], 100, 100);
                     lightColorStyle["--fixed-color"] = `rgb(${fixedColor.rgb().array()})`;
                     lightColorStyle["--fixed-color-transparent"] = `rgb(${fixedColor.rgb().array()}, 0.1)`;
@@ -379,14 +344,12 @@ export class LightCard extends MushroomBaseCard implements LovelaceCard {
                             .entity=${entity}
                             style=${styleMap(sliderStyle)}
                             @current-change=${this.onCurrentBrightnessChange}
-                            @change=${this.onChange} 
                         />` : null }
 
                     ${supportsColorTemp ? html`
                         <mushroom-light-color-temp-control 
                             .hass=${this.hass} 
                             .entity=${entity}
-                            @change=${this.onChange} 
                         />
                     ` : null}
 
@@ -394,7 +357,6 @@ export class LightCard extends MushroomBaseCard implements LovelaceCard {
                         <mushroom-light-color-control 
                             .hass=${this.hass} 
                             .entity=${entity}
-                            @change=${this.onChange} 
                         />
                     `: null}
 
@@ -403,7 +365,6 @@ export class LightCard extends MushroomBaseCard implements LovelaceCard {
                             .hass=${this.hass} 
                             .entity=${entity} 
                             style=${styleMap(lightColorStyle)}
-                            @change=${this.onChange} 
                         />
                     `: null}
                 `;
@@ -423,7 +384,6 @@ export class LightCard extends MushroomBaseCard implements LovelaceCard {
                         .entity=${entity}
                         style=${styleMap(sliderStyle)}
                         @current-change=${this.onCurrentBrightnessChange}
-                        @change=${this.onChange} 
                     />
                 `;
             case "color_temp_control":
@@ -444,14 +404,12 @@ export class LightCard extends MushroomBaseCard implements LovelaceCard {
                             .entity=${entity}
                             style=${styleMap(sliderStyle)}
                             @current-change=${this.onCurrentBrightnessChange}
-                            @change=${this.onChange} 
                         />` : null }
 
                     ${html`
                         <mushroom-light-color-temp-control 
                             .hass=${this.hass} 
                             .entity=${entity} 
-                            @change=${this.onChange} 
                         />
                     `}
                 `;
@@ -478,15 +436,13 @@ export class LightCard extends MushroomBaseCard implements LovelaceCard {
                             .hass=${this.hass}
                             .entity=${entity}
                             style=${styleMap(sliderStyle)}
-                            @current-change=${this.onCurrentBrightnessChange}
-                            @change=${this.onChange} 
+                            @current-change=${this.onCurrentBrightnessChange} 
                         />` : null }
 
                     ${html`
                         <mushroom-light-color-control 
                             .hass=${this.hass} 
                             .entity=${entity} 
-                            @change=${this.onChange} 
                         />
                     `}
 
@@ -495,7 +451,6 @@ export class LightCard extends MushroomBaseCard implements LovelaceCard {
                             .hass=${this.hass} 
                             .entity=${entity} 
                             style=${styleMap(lightColorStyle)} 
-                            @change=${this.onChange} 
                         />
                     `: null}
                 `;
@@ -509,25 +464,6 @@ export class LightCard extends MushroomBaseCard implements LovelaceCard {
             super.styles,
             cardStyle,
             css`
-                .actions {
-                    position: relative;
-                }
-
-                .overlay {
-                    display: flex;
-                    justify-content: center;
-                    align-items: center;
-                    border-radius: var(--control-border-radius);
-                    position: absolute;
-                    width: 100%;
-                    height: 100%;
-                    background: rgb(0, 0, 0, 0.50);
-                    z-index: 1;
-                }
-                .overlay .icon {
-                    opacity: 0.75;
-                }
-
                 mushroom-state-item {
                     cursor: pointer;
                 }

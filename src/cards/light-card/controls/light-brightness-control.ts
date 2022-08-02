@@ -29,8 +29,6 @@ export class LightBrighnessControl extends LitElement {
                 brightness_pct: this._percent,
             });
 
-            this.dispatchEvent(new CustomEvent("change"));
-
             forwardHaptic("selection");
         }
     }
@@ -46,7 +44,6 @@ export class LightBrighnessControl extends LitElement {
             // Disable 0% brightness
             if (value == 0) this._percent = 1;
 
-            this.dispatchEvent(new CustomEvent("change"));
             this.dispatchEvent(
                 new CustomEvent("current-change", {
                     detail: {

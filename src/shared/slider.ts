@@ -3,6 +3,9 @@ import { customElement, property, query, state } from "lit/decorators.js";
 import { classMap } from "lit/directives/class-map.js";
 import { styleMap } from "lit/directives/style-map.js";
 import "hammerjs";
+import { OVERLAY_DELAY } from "../cards/light-card/const";
+import { isMobile } from "../utils/mobile";
+import { forwardHaptic } from "../ha";
 
 const getPercentageFromEvent = (e: HammerInput) => {
     const x = e.center.x;
@@ -47,7 +50,33 @@ export class SliderItem extends LitElement {
 
     private _mc?: HammerManager;
 
+    @state() private _showOverlay?: boolean;
+
+    private _overlayTimer?: number;
+    
     @state() controlled: boolean = false;
+
+    private _onOverlayTap(e): void {
+        forwardHaptic("medium");
+        e.stopPropagation();
+        this.setOverlayTimer();
+    }
+
+    private onChange(): void {
+        if(this._overlayTimer)
+        {
+            clearTimeout(this._overlayTimer);
+        }
+        this.setOverlayTimer();
+    }
+
+    private setOverlayTimer(): void {
+        this._showOverlay = false;
+        this._overlayTimer = window.setTimeout(() => {
+            this._showOverlay = true
+            this._overlayTimer = undefined;
+        }, OVERLAY_DELAY);
+    }
 
     valueToPercentage(value: number) {
         return (value - this.min) / (this.max - this.min);
@@ -77,6 +106,9 @@ export class SliderItem extends LitElement {
 
     setupListeners() {
         if (this.slider && !this._mc) {
+            if(isMobile()) {
+                this._showOverlay = true;
+            }
             const threshold = getSliderThreshold(this.slider);
             this._mc = new Hammer.Manager(this.slider, { touchAction: "pan-y" });
             this._mc.add(
@@ -99,6 +131,7 @@ export class SliderItem extends LitElement {
             });
             this._mc.on("panmove", (e) => {
                 if (this.disabled) return;
+                this.onChange();
                 const percentage = getPercentageFromEvent(e);
                 this.value = this.percentageToValue(percentage);
                 this.dispatchEvent(
@@ -134,6 +167,7 @@ export class SliderItem extends LitElement {
 
             this._mc.on("singletap", (e) => {
                 if (this.disabled) return;
+                this.onChange();
                 const percentage = getPercentageFromEvent(e);
                 // Prevent from input selecting a value that doesn't lie on a step
                 this.value = Math.round(this.percentageToValue(percentage) / this.step) * this.step;
@@ -168,6 +202,7 @@ export class SliderItem extends LitElement {
                     controlled: this.controlled,
                 })}
             >
+                ${this._showOverlay ? html`<div class="overlay" @click=${(e) => this._onOverlayTap(e)}><ha-icon class="icon" icon="mdi:lock" /></div>` : null}
                 <div
                     id="slider"
                     class="slider"
@@ -185,6 +220,21 @@ export class SliderItem extends LitElement {
 
     static get styles(): CSSResultGroup {
         return css`
+            .overlay {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                border-radius: var(--control-border-radius);
+                position: absolute;
+                width: 100%;
+                height: 100%;
+                background: rgb(0, 0, 0, 0.50);
+                z-index: 1;
+            }
+            .overlay .icon {
+                opacity: 0.75;
+            }
+
             :host {
                 --main-color: rgba(var(--rgb-secondary-text-color), 1);
                 --bg-gradient: none;
@@ -196,6 +246,7 @@ export class SliderItem extends LitElement {
                 display: flex;
                 flex-direction: row;
                 height: calc(var(--control-height) * 1.5);
+                position: relative;
             }
             .slider {
                 position: relative;
