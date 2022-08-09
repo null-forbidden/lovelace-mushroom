@@ -56,6 +56,8 @@ export class SliderItem extends LitElement {
     
     @state() controlled: boolean = false;
 
+    private _isMobile?: boolean;
+
     private _onOverlayTap(e): void {
         forwardHaptic("medium");
         e.stopPropagation();
@@ -107,6 +109,7 @@ export class SliderItem extends LitElement {
     setupListeners() {
         if (this.slider && !this._mc) {
             if(isMobile()) {
+                this._isMobile = true;
                 this._showOverlay = true;
             }
             const threshold = getSliderThreshold(this.slider);
@@ -131,7 +134,7 @@ export class SliderItem extends LitElement {
             });
             this._mc.on("panmove", (e) => {
                 if (this.disabled) return;
-                this.onChange();
+                if (this._isMobile) this.onChange();
                 const percentage = getPercentageFromEvent(e);
                 this.value = this.percentageToValue(percentage);
                 this.dispatchEvent(
@@ -167,7 +170,7 @@ export class SliderItem extends LitElement {
 
             this._mc.on("singletap", (e) => {
                 if (this.disabled) return;
-                this.onChange();
+                if (this._isMobile) this.onChange();
                 const percentage = getPercentageFromEvent(e);
                 // Prevent from input selecting a value that doesn't lie on a step
                 this.value = Math.round(this.percentageToValue(percentage) / this.step) * this.step;

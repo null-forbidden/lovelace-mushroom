@@ -92,9 +92,8 @@ export class LightCard extends MushroomBaseCard implements LovelaceCard {
     private _savedHSColor?: number[];
 
     _onControlTap(ctrl: LightCardControl, e): void {
-        forwardHaptic("medium");
-
         e.stopPropagation();
+        forwardHaptic("medium");
         
         if(this._config && this._config.entity && !this._config.disable_auto_switch_mode && (ctrl == "color_temp_control" || ctrl == "color_control"))
         {
@@ -126,7 +125,7 @@ export class LightCard extends MushroomBaseCard implements LovelaceCard {
                     data["rgb_color"] = [255, 0, 0]
                 }
             }
-
+            
             this.hass.callService("light", "turn_on", data);
         }
 
