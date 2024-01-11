@@ -12,13 +12,35 @@ export class LightColorTempControl extends LitElement {
 
     @property({ attribute: false }) public entity!: LightEntity;
 
-    _timer?: number;
-    _percent?: number;
+    private _timer?: number;
+    private _percent?: number;
 
     onChange(e: CustomEvent<{ value: number }>): void {
         const value: number = e.detail.value;
+        if (this._percent == value) return;
 
-        if (this._percent != value) {
+        this._percent = value;
+        
+        //Check if current change timer is active
+        if (this._timer) 
+        {
+            clearTimeout(this._timer);
+            this._timer = undefined;
+        }
+
+        this.hass.callService("light", "turn_on", {
+            entity_id: this.entity.entity_id,
+            color_temp: this._percent,
+        });
+    }
+
+    onCurrentChange(e: CustomEvent<{ value?: number }>): void {
+        const value: number | undefined = e.detail.value;
+        if (value == null || this._percent == value) return;
+        if (this._timer) clearTimeout(this._timer);
+
+        // Set timer to prevent delay issues
+        this._timer = window.setTimeout(() => {
             this._percent = value;
 
             this.hass.callService("light", "turn_on", {
@@ -26,50 +48,29 @@ export class LightColorTempControl extends LitElement {
                 color_temp: this._percent,
             });
 
-            forwardHaptic("selection");
-        }
-    }
-
-    onCurrentChange(e: CustomEvent<{ value?: number }>): void {
-        const value: number | undefined = e.detail.value;
-
-        if (value && this._percent != value) {
-            if (this._timer) clearTimeout(this._timer);
-
-            this._percent = value;
-
-            // Set timer to prevent delay issues
-            this._timer = window.setTimeout(() => {
-                this.hass.callService("light", "turn_on", {
-                    entity_id: this.entity.entity_id,
-                    color_temp: this._percent,
-                });
-                this._timer = undefined;
-            }, LIVE_FEEDBACK_DELAY);
-
-            forwardHaptic("selection");
-        }
+            this._timer = undefined;
+        }, LIVE_FEEDBACK_DELAY);
     }
 
     finished(): void {
         delay(FINISHED_FEEDBACK_DELAY).then(() => {
             this._percent = undefined;
-
-            forwardHaptic("success");
         });
     }
 
     protected render(): TemplateResult {
         const colorTempPercent = this._percent || getColorTemp(this.entity);
 
+        //mushroom-slider .value this._percent != undefined prevent live changing conflicts
         return html`
             <mushroom-slider
-                .value=${colorTempPercent}
+                .value=${this._percent != undefined ? undefined : colorTempPercent}
                 .disabled=${!isAvailable(this.entity)}
                 .inactive=${!isActive(this.entity)}
                 .min=${this.entity.attributes.min_mireds ?? 0}
                 .max=${this.entity.attributes.max_mireds ?? 100}
                 .showIndicator=${true}
+                icon="mdi:thermometer"
                 @change=${this.onChange}
                 @current-change=${this.onCurrentChange}
                 @finished=${this.finished}

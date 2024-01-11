@@ -29,7 +29,7 @@ import { cardStyle } from "../../utils/card-styles";
 import { registerCustomCard } from "../../utils/custom-cards";
 import { stateIcon } from "../../utils/icons/state-icon";
 import { computeEntityPicture } from "../../utils/info";
-import { LIGHT_CARD_EDITOR_NAME, LIGHT_CARD_NAME, LIGHT_ENTITY_DOMAINS } from "./const";
+import { FINISHED_FEEDBACK_DELAY, LIGHT_CARD_EDITOR_NAME, LIGHT_CARD_NAME, LIGHT_ENTITY_DOMAINS } from "./const";
 import "./controls/light-brightness-control";
 import "./controls/light-color-control";
 import "./controls/light-color-temp-control";
@@ -91,6 +91,10 @@ export class LightCard extends MushroomBaseCard implements LovelaceCard {
 
     private _savedHSColor?: number[];
 
+    @state() private _showControls: boolean = false;
+
+    @state() private _showSaturation: boolean = false;
+
     _onControlTap(ctrl: LightCardControl, e): void {
         e.stopPropagation();
         forwardHaptic("medium");
@@ -110,26 +114,26 @@ export class LightCard extends MushroomBaseCard implements LovelaceCard {
 
             if(ctrl == "color_temp_control") {
                 if(this._config.default_kelvin) {
-                    data["kelvin"] = this._config.default_kelvin
+                    data["kelvin"] = this._config.default_kelvin;
                 } else if(this._savedColorTemp) {
-                    data["color_temp"] = this._savedColorTemp
+                    data["color_temp"] = this._savedColorTemp;
                 } else {
-                    data["color_name"] = "undefined" // Hack to switch back to color_temp mode with previous color_temp
+                    data["color_temp"] = (entity.attributes.max_mireds * 0.925);
                 }
             } else if(ctrl == "color_control") {                
                 if(this._config.default_rgb) {
-                    data["rgb_color"] = this._config.default_rgb
+                    data["rgb_color"] = this._config.default_rgb;
                 } else if(this._savedHSColor) {
-                    data["hs_color"] = this._savedHSColor
+                    data["hs_color"] = this._savedHSColor;
                 } else {
-                    data["rgb_color"] = [255, 0, 0]
+                    data["rgb_color"] = entity.attributes.rgb_color;
                 }
             }
             
             this.hass.callService("light", "turn_on", data);
         }
 
-        this._activeControl = ctrl;
+        if(this._config?.disable_auto_switch_mode) this._activeControl = ctrl;
     }
 
     getCardSize(): number | Promise<number> {
@@ -158,24 +162,35 @@ export class LightCard extends MushroomBaseCard implements LovelaceCard {
         }
     }
 
-    @state()
-    private brightness?: number;
+    @state() private brightness?: number = undefined;
+    private _onCurrentBrightnessTimeout?: number;
+    private _isOnCurrentBrightnessChange: boolean = false;
 
     updateBrightness() {
-        this.brightness = undefined;
         if (!this._config || !this.hass || !this._config.entity) return;
 
         const entity_id = this._config.entity;
         const entity = this.hass.states[entity_id] as LightEntity;
 
         if (!entity) return;
-        this.brightness = getBrightness(entity);
+        if(this._isOnCurrentBrightnessChange) return;
+
+        const currentBrithness = getBrightness(entity);
+        this.brightness = currentBrithness;
     }
 
     private onCurrentBrightnessChange(e: CustomEvent<{ value?: number }>): void {
-        if (e.detail.value && this.brightness != e.detail.value) {
-            this.brightness = e.detail.value;
-        }
+        if (e.detail.value == null) return;   
+        if(this._onCurrentBrightnessTimeout) clearTimeout(this._onCurrentBrightnessTimeout);
+        this._isOnCurrentBrightnessChange = true;
+
+        this.brightness = e.detail.value;
+    
+        this._onCurrentBrightnessTimeout = window.setTimeout(() => {
+            this._isOnCurrentBrightnessChange = false;
+            this._onCurrentBrightnessTimeout = undefined;
+        }, FINISHED_FEEDBACK_DELAY);
+
     }
 
     updateControls() {
@@ -204,12 +219,13 @@ export class LightCard extends MushroomBaseCard implements LovelaceCard {
 
         this._controls = controls;
 
-        const isActiveControlSupported = this._activeControl
-            ? controls.includes(this._activeControl)
-            : false;
-
-        if(!isActiveControlSupported) {
-            if(entity.attributes.color_mode == LightColorModes.HS) {
+        //Return when there are not controls
+        if (controls.length <= 0) return;
+        
+        if(!this._activeControl || !this._config.disable_auto_switch_mode)
+        {
+            //Set the active control mode
+            if (entity.attributes.color_mode == LightColorModes.HS || entity.attributes.color_mode == LightColorModes.XY) {
                 this._activeControl = controls[controls.findIndex(x => x == "color_control")]
             } else {
                 this._activeControl = controls[0];
@@ -221,51 +237,20 @@ export class LightCard extends MushroomBaseCard implements LovelaceCard {
         handleAction(this, this.hass!, this._config!, ev.detail.action!);
     }
 
-    protected render(): TemplateResult {
-        if (!this._config || !this.hass || !this._config.entity) {
-            return html``;
-        }
+    private _toggleControls(e)
+    {
+        e.stopPropagation();
+        forwardHaptic("medium");
 
-        const entity_id = this._config.entity;
-        const entity = this.hass.states[entity_id] as LightEntity;
+        this._showControls = !this._showControls;
+    }
 
-        const name = this._config.name || entity.attributes.friendly_name || "";
-        const icon = this._config.icon || stateIcon(entity);
-        const appearance = computeAppearance(this._config);
-        const picture = computeEntityPicture(entity, appearance.icon_type);
+    private _toggleColorSaturation(e)
+    {
+        e.stopPropagation();
+        forwardHaptic("medium");
 
-        let stateDisplay = computeStateDisplay(this.hass.localize, entity, this.hass.locale);
-        if (this.brightness != null) {
-            stateDisplay = `${this.brightness}%`;
-        }
-
-        const rtl = computeRTL(this.hass);
-
-        return html`
-            <ha-card class=${classMap({ "fill-container": appearance.fill_container })}>
-                <mushroom-card .appearance=${appearance} ?rtl=${rtl}>
-                    <mushroom-state-item
-                        ?rtl=${rtl}
-                        .appearance=${appearance}
-                        @action=${this._handleAction}
-                        .actionHandler=${actionHandler({
-                            hasHold: hasAction(this._config.hold_action),
-                            hasDoubleClick: hasAction(this._config.double_tap_action),
-                        })}
-                    >
-                        ${picture ? this.renderPicture(picture) : this.renderIcon(entity, icon)}
-                        ${this.renderBadge(entity)}
-                        ${this.renderStateInfo(entity, appearance, name, stateDisplay)};
-                    </mushroom-state-item>
-                    ${this._controls.length > 0
-                        ? html`
-                              <div class="actions" ?rtl=${rtl}>${this.renderActiveControl(entity)}</div>
-                              <div class="actionButtons">${this.renderOtherControls()}</div>
-                          `
-                        : null}
-                </mushroom-card>
-            </ha-card>
-        `;
+        this._showSaturation = !this._showSaturation;
     }
 
     protected renderIcon(entity: LightEntity, icon: string): TemplateResult {
@@ -276,12 +261,12 @@ export class LightCard extends MushroomBaseCard implements LovelaceCard {
             const color = lightRgbColor.join(",");
             iconStyle["--icon-color"] = `rgb(${color})`;
             iconStyle["--shape-color"] = `rgba(${color}, 0.25)`;
-            if (isColorLight(lightRgbColor) && !(this.hass.themes as any).darkMode) {
-                iconStyle["--shape-outline-color"] = `rgba(var(--rgb-primary-text-color), 0.05)`;
-                if (isColorSuperLight(lightRgbColor)) {
-                    iconStyle["--icon-color"] = `rgba(var(--rgb-primary-text-color), 0.2)`;
-                }
-            }
+            // if (isColorLight(lightRgbColor) && !(this.hass.themes as any).darkMode) {
+            //     iconStyle["--shape-outline-color"] = `rgba(var(--rgb-primary-text-color), 0.05)`;
+            //     if (isColorSuperLight(lightRgbColor)) {
+            //         iconStyle["--icon-color"] = `rgba(var(--rgb-primary-text-color), 0.2)`;
+            //     }
+            // }
         }
         return html`
             <mushroom-shape-icon
@@ -324,10 +309,10 @@ export class LightCard extends MushroomBaseCard implements LovelaceCard {
                     const color = lightRgbColor.join(",");
                     sliderStyle["--slider-color"] = `rgb(${color})`;
                     sliderStyle["--slider-bg-color"] = `rgba(${color}, 0.2)`;
-                    if (isColorLight(lightRgbColor) && !(this.hass.themes as any).darkMode) {
-                        sliderStyle["--slider-bg-color"] = `rgba(var(--rgb-primary-text-color), 0.05)`;
-                        sliderStyle["--slider-color"] = `rgba(var(--rgb-primary-text-color), 0.15)`;
-                    }
+                    // if (isColorLight(lightRgbColor) && !(this.hass.themes as any).darkMode) {
+                    //     sliderStyle["--slider-bg-color"] = `rgba(var(--rgb-primary-text-color), 0.05)`;
+                    //     sliderStyle["--slider-color"] = `rgba(var(--rgb-primary-text-color), 0.15)`;
+                    // }
                 }
                 
                 if (this._config?.show_all_controls && supportsColorSaturation && entity.attributes.hs_color) {
@@ -372,10 +357,10 @@ export class LightCard extends MushroomBaseCard implements LovelaceCard {
                     const color = lightRgbColor.join(",");
                     sliderStyle["--slider-color"] = `rgb(${color})`;
                     sliderStyle["--slider-bg-color"] = `rgba(${color}, 0.2)`;
-                    if (isColorLight(lightRgbColor) && !(this.hass.themes as any).darkMode) {
-                        sliderStyle[ "--slider-bg-color"] = `rgba(var(--rgb-primary-text-color), 0.05)`;
-                        sliderStyle["--slider-color"] = `rgba(var(--rgb-primary-text-color), 0.15)`;
-                    }
+                    // if (isColorLight(lightRgbColor) && !(this.hass.themes as any).darkMode) {
+                    //     sliderStyle[ "--slider-bg-color"] = `rgba(var(--rgb-primary-text-color), 0.05)`;
+                    //     sliderStyle["--slider-color"] = `rgba(var(--rgb-primary-text-color), 0.15)`;
+                    // }
                 }
                 return html`
                     <mushroom-light-brightness-control
@@ -390,10 +375,10 @@ export class LightCard extends MushroomBaseCard implements LovelaceCard {
                     const color = lightRgbColor.join(",");
                     sliderStyle["--slider-color"] = `rgb(${color})`;
                     sliderStyle["--slider-bg-color"] = `rgba(${color}, 0.2)`;
-                    if (isColorLight(lightRgbColor) && !(this.hass.themes as any).darkMode) {
-                        sliderStyle[ "--slider-bg-color"] = `rgba(var(--rgb-primary-text-color), 0.05)`;
-                        sliderStyle["--slider-color"] = `rgba(var(--rgb-primary-text-color), 0.15)`;
-                    }
+                    // if (isColorLight(lightRgbColor) && !(this.hass.themes as any).darkMode) {
+                    //     sliderStyle[ "--slider-bg-color"] = `rgba(var(--rgb-primary-text-color), 0.05)`;
+                    //     sliderStyle["--slider-color"] = `rgba(var(--rgb-primary-text-color), 0.15)`;
+                    // }
                 }
                 
                 return html`
@@ -417,10 +402,10 @@ export class LightCard extends MushroomBaseCard implements LovelaceCard {
                     const color = lightRgbColor.join(",");
                     sliderStyle["--slider-color"] = `rgb(${color})`;
                     sliderStyle["--slider-bg-color"] = `rgba(${color}, 0.2)`;
-                    if (isColorLight(lightRgbColor) && !(this.hass.themes as any).darkMode) {
-                        sliderStyle["--slider-bg-color"] = `rgba(var(--rgb-primary-text-color), 0.05)`;
-                        sliderStyle["--slider-color"] = `rgba(var(--rgb-primary-text-color), 0.15)`;
-                    }
+                    // if (isColorLight(lightRgbColor) && !(this.hass.themes as any).darkMode) {
+                    //     sliderStyle["--slider-bg-color"] = `rgba(var(--rgb-primary-text-color), 0.05)`;
+                    //     sliderStyle["--slider-color"] = `rgba(var(--rgb-primary-text-color), 0.15)`;
+                    // }
                 }
                 
                 if (this._config?.show_color_control && supportsColorSaturation && entity.attributes.hs_color) {
@@ -439,23 +424,108 @@ export class LightCard extends MushroomBaseCard implements LovelaceCard {
                         />` : null }
 
                     ${html`
-                        <mushroom-light-color-control 
-                            .hass=${this.hass} 
-                            .entity=${entity} 
-                        />
+                        <div style="display: flex; justify-content: space-between; gap: 12px;">
+                            ${supportsColorSaturation && this._showSaturation
+                                ? html`
+                                    <mushroom-light-color-saturation-control 
+                                        style=${styleMap({
+                                            ...lightColorStyle,
+                                            "flex-grow": "1",
+                                            "margin-right": "0"
+                                        })}
+                                        .hass=${this.hass} 
+                                        .entity=${entity}>
+                                    </mushroom-light-color-saturation-control>
+                                `
+                                : html`
+                                    <mushroom-light-color-control 
+                                        style=${styleMap({
+                                            "flex-grow": "1",
+                                            "margin-right": "0"
+                                        })}
+                                        .hass=${this.hass} 
+                                        .entity=${entity}>
+                                    </mushroom-light-color-control>
+                                `
+                            }
+                            ${supportsColorSaturation
+                                ? html`
+                                    <mushroom-button
+                                        style=${styleMap({
+                                            "flex-shrink": "1",
+                                            "height": "calc(var(--control-height)*1.5)",
+                                            "width": "calc(var(--control-height) * var(--control-button-ratio) * 1.5)"
+                                        })}
+                                        .icon=${this._showSaturation ? "mdi:palette" : "mdi:invert-colors"}
+                                        @click=${(e) => this._toggleColorSaturation(e)}>
+                                    </mushroom-button>
+                                `
+                                : null
+                            }
+                        </div>
                     `}
-
-                    ${supportsColorSaturation ? html`
-                        <mushroom-light-color-saturation-control 
-                            .hass=${this.hass} 
-                            .entity=${entity} 
-                            style=${styleMap(lightColorStyle)} 
-                        />
-                    `: null}
                 `;
             default:
                 return null;
         }
+    }
+
+    protected render(): TemplateResult {
+        if (!this._config || !this.hass || !this._config.entity) {
+            return html``;
+        }
+
+        const entity_id = this._config.entity;
+        const entity = this.hass.states[entity_id] as LightEntity;
+
+        const name = this._config.name || entity.attributes.friendly_name || "";
+        const icon = this._config.icon || stateIcon(entity);
+        const appearance = computeAppearance(this._config);
+        const picture = computeEntityPicture(entity, appearance.icon_type);
+
+        let stateDisplay = computeStateDisplay(this.hass.localize, entity, this.hass.locale);
+        if (this.brightness != null) {
+            stateDisplay = `${this.brightness}%`;
+        }
+
+        const rtl = computeRTL(this.hass);
+
+        return html`
+            <ha-card class=${classMap({ "fill-container": appearance.fill_container })}>
+                <mushroom-card .appearance=${appearance} ?rtl=${rtl}>
+                    <div style="display: flex; justify-content: space-between; gap: 12px;">
+                        <mushroom-state-item
+                            style="flex-grow: 1;"
+                            ?rtl=${rtl}
+                            .appearance=${appearance}
+                            @action=${this._handleAction}
+                            .actionHandler=${actionHandler({
+                                hasHold: hasAction(this._config.hold_action),
+                                hasDoubleClick: hasAction(this._config.double_tap_action),
+                            })}
+                        >
+                            ${picture ? this.renderPicture(picture) : this.renderIcon(entity, icon)}
+                            ${this.renderBadge(entity)}
+                            ${this.renderStateInfo(entity, appearance, name, stateDisplay)};
+                        </mushroom-state-item>
+                        ${this._controls.length > 0
+                            ? html`
+                                <mushroom-button
+                                    style="flex-shrink: 1;"
+                                    .icon=${this._showControls ? "mdi:brush-off" : "mdi:brush"}
+                                    @click=${(e) => this._toggleControls(e)}></mushroom-button>
+                            `
+                            : null}
+                    </div>
+                    ${this._controls.length > 0 && this._showControls
+                        ? html`
+                              <div class="actions" ?rtl=${rtl}>${this.renderActiveControl(entity)}</div>
+                              <div class="actionButtons">${this.renderOtherControls()}</div>
+                          `
+                        : null}
+                </mushroom-card>
+            </ha-card>
+        `;
     }
 
     static get styles(): CSSResultGroup {

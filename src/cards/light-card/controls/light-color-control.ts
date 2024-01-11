@@ -15,7 +15,7 @@ const GRADIENT = [
     [0.5, "#0ff"],
     [0.66, "#00f"],
     [0.83, "#f0f"],
-    [1, "#f00"],
+    [1, "#f00"]
 ];
 
 @customElement("mushroom-light-color-control")
@@ -24,8 +24,8 @@ export class LightColorControl extends LitElement {
 
     @property({ attribute: false }) public entity!: HassEntity;
 
-    _timer?: number;
-    _percent?: number;
+    private _timer?: number;
+    private _percent?: number;
 
     _percentToRGB(percent: number): number[] {
         const color = Color.hsv(360 * percent, 100, 100);
@@ -39,54 +39,52 @@ export class LightColorControl extends LitElement {
 
     onChange(e: CustomEvent<{ value: number }>): void {
         const value: number = e.detail.value;
+        if (this._percent == value) return;
 
-        if (this._percent != value) {
+        this._percent = value;
+
+        //Check if current change timer is active
+        if (this._timer) 
+        {
+            clearTimeout(this._timer);
+            this._timer = undefined;
+        }
+
+        const rgb_color = this._percentToRGB(this._percent / 100);
+
+        if (rgb_color.length === 3) {
+            this.hass.callService("light", "turn_on", {
+                entity_id: this.entity.entity_id,
+                rgb_color,
+            });
+        }
+    }
+
+    onCurrentChange(e: CustomEvent<{ value?: number }>): void {
+        const value: number | undefined = e.detail.value;
+        if (value == null || this._percent == value) return;
+        if (this._timer) clearTimeout(this._timer);
+
+        // Set timer to prevent delay issues
+        this._timer = window.setTimeout(() => {
             this._percent = value;
 
-            const rgb_color = this._percentToRGB(this._percent / 100);
+            const rgb_color = this._percentToRGB(this._percent! / 100);
 
             if (rgb_color.length === 3) {
                 this.hass.callService("light", "turn_on", {
                     entity_id: this.entity.entity_id,
                     rgb_color,
                 });
-
-                forwardHaptic("selection");
             }
-        }
-    }
 
-    onCurrentChange(e: CustomEvent<{ value?: number }>): void {
-        const value: number | undefined = e.detail.value;
-
-        if (value && this._percent != value) {
-            if (this._timer) clearTimeout(this._timer);
-
-            this._percent = value;
-
-            // Set timer to prevent delay issues
-            this._timer = window.setTimeout(() => {
-                const rgb_color = this._percentToRGB(this._percent! / 100);
-
-                if (rgb_color.length === 3) {
-                    this.hass.callService("light", "turn_on", {
-                        entity_id: this.entity.entity_id,
-                        rgb_color,
-                    });
-                }
-
-                this._timer = undefined;
-            }, LIVE_FEEDBACK_DELAY);
-
-            forwardHaptic("selection");
-        }
+            this._timer = undefined;
+        }, LIVE_FEEDBACK_DELAY);
     }
 
     finished(): void {
         delay(FINISHED_FEEDBACK_DELAY).then(() => {
             this._percent = undefined;
-
-            forwardHaptic("success");
         });
     }
 
@@ -94,14 +92,16 @@ export class LightColorControl extends LitElement {
         const colorPercent =
             this._percent || Math.round(this._rgbToPercent(this.entity.attributes.rgb_color) * 100);
 
+        //mushroom-slider .value this._percent != undefined prevent live changing conflicts
         return html`
             <mushroom-slider
-                .value=${colorPercent}
+                .value=${this._percent != undefined ? undefined : colorPercent}
                 .disabled=${!isAvailable(this.entity)}
                 .inactive=${!isActive(this.entity)}
                 .min=${0}
                 .max=${99 /* max 99 because 100 is also 0 */}
                 .showIndicator=${true}
+                icon="mdi:palette"
                 @change=${this.onChange}
                 @current-change=${this.onCurrentChange}
                 @finished=${this.finished}
